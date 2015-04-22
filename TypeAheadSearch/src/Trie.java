@@ -61,9 +61,10 @@ public class Trie {
     }
     private Set<Item> inorderTraverse(TrieNode node)
     {
+    	Set<Item> itemList = new HashSet<Item>();
         if(node==null)
-            return null;
-        Set<Item> itemList = new HashSet<Item>(node.getItems());
+            return itemList;
+        itemList.addAll(node.getItems());
         Map<Character, TrieNode> children = node.getChildren();
         for(char ch : children.keySet())
         {

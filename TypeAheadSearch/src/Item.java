@@ -11,14 +11,16 @@ public class Item {
 
     private ItemType type;
     private String id;
+    private int index;
     private String value;
     private float score;
     
-    public Item(String itemType, String id, float score, String val)
+    public Item(String itemType, int index, String id, float score, String val)
     {
         if(itemType==null || itemType.isEmpty() || id==null || id.isEmpty() || val==null || val.isEmpty())
             throw new IllegalArgumentException("Invalid item input: ");
         this.type = parseItemType(itemType);
+        this.index = index;
         this.id = id;
         this.score = score;
         this.value = val;
@@ -28,7 +30,10 @@ public class Item {
         return type;
     }
 
-
+    public int getIndex()
+    {
+    	return index;
+    }
     public void setType(ItemType type) {
         this.type = type;
     }
