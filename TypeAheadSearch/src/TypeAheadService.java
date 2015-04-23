@@ -55,25 +55,72 @@ public class TypeAheadService {
         {
         	parseAndExecuteQuery(command);
         }
+        else if(command.startsWith(WQUERY_COMMAND))
+        {
+        	parseAndExecuteWeightedQuery(command);
+        }
     }
+    private static void parseAndDelete(String command)
+    {
+    	String[] parameters = command.split(" ");
+    	if(parameters.length!=2)
+    		return;
+    	delete(parameters[2].trim().toLowerCase());
+    }
+    private static void delete(String id)
+    {
+    	if(id==null || id.isEmpty())
+    		return;
+    	
+    }
+    private static void parseAndExecuteWeightedQuery(String queryString)
+    {
+    	String[] parameters = queryString.split(" ");
+    	if(parameters.length<4)
+    		return;
+    	int k = Integer.parseInt(parameters[1]);
+    	int numberOfBoosts = Integer.parseInt(parameters[2]);
+    	ItemComparator comparator = new ItemComparator(numberOfBoosts);
+    	for(int i=0;i<numberOfBoosts;i++)
+    	{
+    		String parameter = parameters[3+i];
+    		String[] values = parameter.split(":");
+    		comparator.addBooster(values[0], Float.parseFloat(values[1]));
+    	}
+    	executeQuery(parameters, 3+numberOfBoosts, comparator, k);
+    }
+    
     private static void parseAndExecuteQuery(String queryString)
     {
     	String[] parameters = queryString.split(" ");
     	if(parameters.length<3)
     		return;
     	int k = Integer.parseInt(parameters[1]);
-    	Set<Item> intersection = getTopKItems(parameters[2], k);
-    	for(int i=3; i<parameters.length;i++)
-    	{
-    		intersection.retainAll(getTopKItems(parameters[i], k));
-    	}
-    	sortAndPrintQueryResult(intersection);
+    	executeQuery(parameters, 2,itemComparatorByScore,k);
     }
     
-    private static void sortAndPrintQueryResult(Set<Item> intersection)
+    private static void executeQuery(String[] queryParameters, int startTermIndex, Comparator comparator, int numberOfItems)
+    {
+    	if(numberOfItems<=0)
+    	{
+    		System.out.println();
+    		return;
+    	}
+    	if(startTermIndex>=queryParameters.length)
+    		return;
+    	Set<Item> intersection = getItemsForQuery(queryParameters[startTermIndex]);
+    	for(int i=startTermIndex+1; i<queryParameters.length;i++)
+    	{
+    		Set<Item> set = getItemsForQuery(queryParameters[i]);
+    		intersection.retainAll(set);
+    	}
+    	sortAndPrintQueryResult(getTopKItems(intersection, numberOfItems, comparator),comparator);
+    }
+    
+    private static void sortAndPrintQueryResult(Set<Item> intersection, Comparator comparator)
     {
     	List<Item> sortedList = new ArrayList<Item>(intersection);
-    	Collections.sort(sortedList, itemComparatorByScore);
+    	Collections.sort(sortedList, comparator);
     	for(int i=sortedList.size()-1;i>=0;i--)
     	{
     		System.out.print(sortedList.get(i).getId()+" ");
@@ -81,30 +128,33 @@ public class TypeAheadService {
     	System.out.println();
     }
     
-    private static Set<Item> getTopKItems(String queryString, int numOfResults)
-    {
+    private static Set<Item> getItemsForQuery(String queryString){
     	Set<Item> items = new HashSet<Item>();
-    	if(queryString==null || queryString.isEmpty() || (numOfResults<1))
+    	if(queryString==null || queryString.isEmpty())
     		return items;
-        items.addAll(trie.traverseTrie(queryString.trim().toLowerCase()));
+    	return trie.traverseTrie(queryString.trim().toLowerCase());
+    }
+    
+    private static Set<Item> getTopKItems(Set<Item> items, int numOfResults, Comparator comparator)
+    {
         if(items.size()>numOfResults)
         {
-            PriorityQueue<Item> minPriorityQueueByScore = new PriorityQueue<Item>(numOfResults, itemComparatorByScore);
-            float minScore = 0;
+            PriorityQueue<Item> minPriorityQueueByScore = new PriorityQueue<Item>(numOfResults, comparator);
+            Item minItem = null;
             for(Item item : items)
             {
             	if(minPriorityQueueByScore.size()<numOfResults)
             	{
             		minPriorityQueueByScore.add(item);
-            		minScore = minPriorityQueueByScore.peek().getScore();
+            		minItem = minPriorityQueueByScore.peek();
             	}
             	else
             	{
-            		if(item.getScore()>minScore)
+            		if(comparator.compare(item, minItem)==1)
             		{
             			minPriorityQueueByScore.poll();
             			minPriorityQueueByScore.add(item);
-            			minScore = minPriorityQueueByScore.peek().getScore();
+            			minItem = minPriorityQueueByScore.peek();
             		}
             	}
             }

@@ -82,4 +82,15 @@ public class Item {
             throw new IllegalArgumentException("Invalid item type");
         }
     }
+    public String getItemType(){
+    	if(type.equals(ItemType.USER))
+    		return USER_VAL;
+    	else if(type.equals(ItemType.TOPIC))
+    		return TOPIC_VAL;
+    	else if(type.equals(ItemType.QUESTION))
+    		return QUESTION_VAL;
+    	else if(type.equals(ItemType.BOARD))
+    		return BOARD_VAL;
+    	return null;
+    }
 }
